@@ -5,7 +5,7 @@
  * @param {import('sequelize').DataTypes} DataTypes
  */
 module.exports = (sequelize, DataTypes) => {
-    return sequelize.define('users', {
+    return sequelize.define('guilds', {
         /**
          * ギルドID
          */
@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
          */
         rank_image: {
             type: DataTypes.BLOB,
-            allowNull: false,
+            allowNull: true,
         },
         /**
          * 1メッセージで獲得できる経験値

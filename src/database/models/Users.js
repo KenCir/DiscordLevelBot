@@ -6,13 +6,19 @@
  */
 module.exports = (sequelize, DataTypes) => {
     return sequelize.define('users', {
+        /**
+         * ユーザーID
+         */
         user_id: {
             type: DataTypes.STRING,
             primaryKey: true,
         },
+        /**
+         * Rank背景画像
+         */
         rank_image: {
             type: DataTypes.BLOB,
-            allowNull: false,
+            allowNull: true,
         },
     }, {
         indexes: [

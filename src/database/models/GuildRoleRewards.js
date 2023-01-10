@@ -6,6 +6,10 @@
  */
 module.exports = (sequelize, DataTypes) => {
     return sequelize.define('guild_role_rewards', {
+        /**
+         * 管理用ID
+         * ギルドID-ロールID
+         */
         id: {
             type: DataTypes.STRING,
             primaryKey: true,

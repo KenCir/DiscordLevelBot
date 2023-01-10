@@ -6,23 +6,32 @@
  */
 module.exports = (sequelize, DataTypes) => {
     return sequelize.define('levels', {
+        /**
+         * 管理用ID
+         * ユーザーID-ギルドID
+         */
         id: {
             type: DataTypes.STRING,
             primaryKey: true,
         },
+        /**
+         * ユーザーID
+         */
         user_id: {
             type: DataTypes.STRING,
             allowNull: false,
         },
+        /**
+         * ギルドID
+         */
         guild_id: {
             type: DataTypes.STRING,
             allowNull: false,
         },
+        /**
+         * 経験値
+         */
         xp: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-        },
-        level: {
             type: DataTypes.INTEGER,
             allowNull: false,
         },
