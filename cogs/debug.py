@@ -1,0 +1,45 @@
+import os
+
+import discord
+from discord import app_commands
+from discord.ext import commands
+from main import DiscordLevelBot
+from utils.util import is_bot_owner
+
+
+@app_commands.guild_only()
+@app_commands.guilds(discord.Object(id=872880984205430834))
+class DebugCommand(
+    commands.GroupCog, name="debug", description="デバッグ関連のコマンド"
+):
+    def __init__(self, bot: DiscordLevelBot):
+        super().__init__()
+        self.bot = bot
+
+    @app_commands.command(name="reload", description="Cogをリロードします")
+    @app_commands.describe(resync="コマンドを再同期します")
+    @is_bot_owner()
+    async def reload(self, interaction: discord.Interaction, resync: bool = False):
+        await interaction.response.defer(ephemeral=True)
+
+        for extension in self.bot.initial_extensions:
+            await self.bot.reload_extension(extension)
+
+        if resync:
+            await self.bot.tree.sync(
+                guild=discord.Object(id=os.environ.get("GUILD_ID"))
+            )
+        await interaction.followup.send(
+            f"Reloaded {'and Resync Command' if resync else ''}"
+        )
+
+    @app_commands.command(name="ping", description="Botのレイテンシを表示します")
+    async def ping(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            f"Pong! {self.bot.latency * 1000:.2f}ms",
+            ephemeral=True,
+        )
+
+
+async def setup(bot):
+    await bot.add_cog(DebugCommand(bot))
