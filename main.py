@@ -6,7 +6,7 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from utils.util import NotBotOwner
+from utils.util import NotBotAdmin
 
 
 class DiscordLevelBot(commands.Bot):
@@ -22,6 +22,7 @@ class DiscordLevelBot(commands.Bot):
             await self.load_extension(extension)
 
         # self.tree.clear_commands()
+        self.tree.copy_global_to(guild=discord.Object(id=os.environ.get("GUILD_ID")))
         await self.tree.sync(guild=discord.Object(id=os.environ.get("GUILD_ID")))
 
         self.tree.on_error = self.on_tree_error
@@ -65,7 +66,7 @@ class DiscordLevelBot(commands.Bot):
         elif isinstance(error, app_commands.BotMissingPermissions):
             missing_permissions = ", ".join(error.missing_permissions)
             msg = f"このコマンドを実行するためにはBotに`{missing_permissions}`権限が必要です"
-        elif isinstance(error, NotBotOwner):
+        elif isinstance(error, NotBotAdmin):
             msg = "このコマンドはBotOwnerのみ実行できます"
         elif isinstance(error, app_commands.CheckFailure):
             msg = "このコマンドは実行できません"

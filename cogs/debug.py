@@ -4,11 +4,10 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from main import DiscordLevelBot
-from utils.util import is_bot_owner
+from utils.util import is_bot_admin
 
 
 @app_commands.guild_only()
-@app_commands.guilds(discord.Object(id=872880984205430834))
 class DebugCommand(
     commands.GroupCog, name="debug", description="デバッグ関連のコマンド"
 ):
@@ -18,7 +17,7 @@ class DebugCommand(
 
     @app_commands.command(name="reload", description="Cogをリロードします")
     @app_commands.describe(resync="コマンドを再同期します")
-    @is_bot_owner()
+    @is_bot_admin()
     async def reload(self, interaction: discord.Interaction, resync: bool = False):
         await interaction.response.defer(ephemeral=True)
 
@@ -26,6 +25,9 @@ class DebugCommand(
             await self.bot.reload_extension(extension)
 
         if resync:
+            self.bot.tree.copy_global_to(
+                guild=discord.Object(id=os.environ.get("GUILD_ID"))
+            )
             await self.bot.tree.sync(
                 guild=discord.Object(id=os.environ.get("GUILD_ID"))
             )
