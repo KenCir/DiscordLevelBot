@@ -6,6 +6,7 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from database.database import Database
 from utils.util import NotBotAdmin
 
 
@@ -15,12 +16,15 @@ class DiscordLevelBot(commands.Bot):
             command_prefix="", help_command=None, intents=discord.Intents.default()
         )
 
-        self.initial_extensions = ["cogs.debug"]
+        self.initial_extensions = ["cogs.debug", "cogs.leveling"]
+        self.db = Database()
 
     async def setup_hook(self) -> None:
         for extension in self.initial_extensions:
             await self.load_extension(extension)
 
+        await self.db.connect()
+        await self.db.init()
         # self.tree.clear_commands()
         self.tree.copy_global_to(guild=discord.Object(id=os.environ.get("GUILD_ID")))
         await self.tree.sync(guild=discord.Object(id=os.environ.get("GUILD_ID")))
@@ -29,6 +33,10 @@ class DiscordLevelBot(commands.Bot):
 
     async def on_ready(self):
         print(f"Logged in as {self.user}")
+
+    async def close(self) -> None:
+        await self.db.close()
+        await super().close()
 
     async def on_tree_error(
         self, interaction: discord.Interaction, error: app_commands.AppCommandError

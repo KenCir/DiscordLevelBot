@@ -1,3 +1,5 @@
+import math
+
 import discord
 from discord import app_commands
 
@@ -14,3 +16,20 @@ def is_bot_admin():
         raise NotBotAdmin("You are not the bot owner")
 
     return app_commands.check(predicate)
+
+
+def calculation_level(exp: int) -> int:
+    level = 0
+    while True:
+        exp = (5 * (level**2) + (50 * level) + 100) - exp
+        if exp <= 0:
+            level += 1
+            exp = abs(exp)
+        else:
+            break
+
+    return level
+
+
+def calculation_next_level_exp(level: int) -> int:
+    return 5 * (level**2) + (50 * level) + 100
