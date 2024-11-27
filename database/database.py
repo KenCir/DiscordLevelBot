@@ -226,6 +226,22 @@ class Database:
 
         return result
 
+    async def get_user_rank(self, user_id: int, guild_id: int) -> int | None:
+        """
+        ユーザーのランクを取得します
+        """
+
+        async with self.pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "SELECT (SELECT COUNT(0) FROM user_levels WHERE guild_id = %s AND level > user_levels1.level OR (level = user_levels1.level AND exp > user_levels1.exp)) + 1 AS ranking FROM user_levels AS user_levels1 WHERE user_id = %s AND guild_id = %s",
+                    (guild_id, user_id, guild_id),
+                )
+                result = await cur.fetchone()
+                await conn.commit()
+
+        return result[0] if result else None
+
     async def create_user_level(
         self, user_id: int, guild_id: int, level: int = 0, exp: int = 0
     ) -> None:
@@ -253,5 +269,18 @@ class Database:
                 await cur.execute(
                     "UPDATE user_levels SET level = %s, exp = %s WHERE user_id = %s AND guild_id = %s",
                     (level, exp, user_id, guild_id),
+                )
+                await conn.commit()
+
+    async def delete_user_level(self, user_id: int, guild_id: int) -> None:
+        """
+        ユーザーのレベルデータを削除します
+        """
+
+        async with self.pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "DELETE FROM user_levels WHERE user_id = %s AND guild_id = %s",
+                    (user_id, guild_id),
                 )
                 await conn.commit()

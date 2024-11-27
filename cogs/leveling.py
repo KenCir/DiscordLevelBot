@@ -83,8 +83,9 @@ class Leveling(commands.Cog):
             return
 
         level, exp = user_level
+        ranking = await self.bot.db.get_user_rank(user.id, interaction.guild.id)
         await interaction.followup.send(
-            f"{user.display_name} Level: {level} Exp: {exp}/{calculation_next_level_exp(level)}"
+            content=f"現在`{ranking}`位\nLevel: `{level}`\nExp: `{exp}/{calculation_next_level_exp(level)}`",
         )
 
 
