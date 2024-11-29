@@ -40,24 +40,23 @@ class Database:
             async with conn.cursor() as cur:
                 # ギルドの設定データ
                 await cur.execute(
-                    "CREATE TABLE IF NOT EXISTS guild_settings (guild_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,"
+                    "CREATE TABLE IF NOT EXISTS guild_settings (guild_id BIGINT UNSIGNED PRIMARY KEY,"
                     "min_exp INT UNSIGNED NOT NULL, max_exp INT UNSIGNED NOT NULL,"
                     "stack_level_roles BOOLEAN NOT NULL,　created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
                     "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP)"
                 )
                 # ギルドのレベルロールデータ
                 await cur.execute(
-                    "CREATE TABLE IF NOT EXISTS guild_level_roles (guild_id BIGINT UNSIGNED NOT NULL,"
-                    "role_id BIGINT UNSIGNED NOT NULL, level INT UNSIGNED NOT NULL,"
+                    "CREATE TABLE IF NOT EXISTS guild_level_roles (guild_id BIGINT UNSIGNED,"
+                    "role_id BIGINT UNSIGNED, level INT UNSIGNED NOT NULL,"
                     "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
                     "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,"
                     "PRIMARY KEY (guild_id, role_id))"
                 )
                 # ユーザーのレベルデータ
                 await cur.execute(
-                    "CREATE TABLE IF NOT EXISTS user_levels (user_id BIGINT UNSIGNED, guild_id BIGINT UNSIGNED NOT NULL,"
-                    "level INT UNSIGNED NOT NULL, exp INT UNSIGNED NOT NULL, "
-                    "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                    "CREATE TABLE IF NOT EXISTS user_levels (user_id BIGINT UNSIGNED, guild_id BIGINT UNSIGNED,"
+                    "exp INT UNSIGNED NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
                     "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,"
                     "PRIMARY KEY (user_id, guild_id))"
                 )
@@ -167,6 +166,22 @@ class Database:
 
         return result
 
+    async def get_guild_level_role(self, guild_id: int, role_id: int) -> int | None:
+        """
+        ギルドのレベルロールデータを取得します
+        """
+
+        async with self.pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "SELECT level FROM guild_level_roles WHERE guild_id = %s AND role_id = %s",
+                    (guild_id, role_id),
+                )
+                result = await cur.fetchone()
+                await conn.commit()
+
+        return result[0] if result else None
+
     async def create_guild_level_role(
         self, guild_id: int, role_id: int, level: int
     ) -> None:
@@ -208,9 +223,7 @@ class Database:
                 )
                 await conn.commit()
 
-    async def get_user_level(
-        self, user_id: int, guild_id: int
-    ) -> tuple[int, int] | None:
+    async def get_user_level(self, user_id: int, guild_id: int) -> int | None:
         """
         ユーザーのレベルデータを取得します
         """
@@ -218,15 +231,15 @@ class Database:
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    "SELECT level, exp FROM user_levels WHERE user_id = %s AND guild_id = %s",
+                    "SELECT exp FROM user_levels WHERE user_id = %s AND guild_id = %s",
                     (user_id, guild_id),
                 )
                 result = await cur.fetchone()
                 await conn.commit()
 
-        return result
+        return result[0] if result else None
 
-    async def get_user_rank(self, user_id: int, guild_id: int) -> int | None:
+    async def get_user_level_rank(self, user_id: int, guild_id: int) -> int | None:
         """
         ユーザーのランクを取得します
         """
@@ -234,7 +247,7 @@ class Database:
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    "SELECT (SELECT COUNT(0) FROM user_levels WHERE guild_id = %s AND level > user_levels1.level OR (level = user_levels1.level AND exp > user_levels1.exp)) + 1 AS ranking FROM user_levels AS user_levels1 WHERE user_id = %s AND guild_id = %s",
+                    "SELECT (SELECT COUNT(0) FROM user_levels WHERE guild_id = %s AND exp > user_levels1.exp) + 1 AS ranking FROM user_levels AS user_levels1 WHERE user_id = %s AND guild_id = %s",
                     (guild_id, user_id, guild_id),
                 )
                 result = await cur.fetchone()
@@ -242,8 +255,24 @@ class Database:
 
         return result[0] if result else None
 
+    async def get_user_level_ranking(self, guild_id: int) -> list[tuple[int, int]]:
+        """
+        ギルドのランキングを取得します
+        """
+
+        async with self.pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "SELECT user_id, exp FROM user_levels WHERE guild_id = %s ORDER BY exp DESC",
+                    (guild_id,),
+                )
+                result = await cur.fetchall()
+                await conn.commit()
+
+        return result
+
     async def create_user_level(
-        self, user_id: int, guild_id: int, level: int = 0, exp: int = 0
+        self, user_id: int, guild_id: int, exp: int = 0
     ) -> None:
         """
         ユーザーのレベルデータを作成します
@@ -252,14 +281,12 @@ class Database:
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    "INSERT INTO user_levels (user_id, guild_id, level, exp) VALUES (%s, %s, %s, %s)",
-                    (user_id, guild_id, level, exp),
+                    "INSERT INTO user_levels (user_id, guild_id, exp) VALUES (%s, %s, %s)",
+                    (user_id, guild_id, exp),
                 )
                 await conn.commit()
 
-    async def update_user_level(
-        self, user_id: int, guild_id: int, level: int, exp: int
-    ) -> None:
+    async def update_user_level(self, user_id: int, guild_id: int, exp: int) -> None:
         """
         ユーザーのレベルデータを更新します
         """
@@ -267,8 +294,8 @@ class Database:
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    "UPDATE user_levels SET level = %s, exp = %s WHERE user_id = %s AND guild_id = %s",
-                    (level, exp, user_id, guild_id),
+                    "UPDATE user_levels SET exp = %s WHERE user_id = %s AND guild_id = %s",
+                    (exp, user_id, guild_id),
                 )
                 await conn.commit()
 
@@ -282,5 +309,18 @@ class Database:
                 await cur.execute(
                     "DELETE FROM user_levels WHERE user_id = %s AND guild_id = %s",
                     (user_id, guild_id),
+                )
+                await conn.commit()
+
+    async def delete_all_user_levels(self, guild_id: int) -> None:
+        """
+        ユーザーのレベルデータを全て削除します
+        """
+
+        async with self.pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "DELETE FROM user_levels WHERE guild_id = %s",
+                    (guild_id,),
                 )
                 await conn.commit()

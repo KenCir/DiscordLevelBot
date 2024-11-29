@@ -1,0 +1,3 @@
+# DiscordLevelBot
+
+DiscordのレベリングBot

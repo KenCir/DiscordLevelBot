@@ -16,7 +16,7 @@ class DiscordLevelBot(commands.Bot):
             command_prefix="", help_command=None, intents=discord.Intents.default()
         )
 
-        self.initial_extensions = ["cogs.debug", "cogs.leveling"]
+        self.initial_extensions = ["cogs.debug", "cogs.leveling", "cogs.admin"]
         self.db = Database()
 
     async def setup_hook(self) -> None:
@@ -25,7 +25,7 @@ class DiscordLevelBot(commands.Bot):
 
         await self.db.connect()
         await self.db.init()
-        # self.tree.clear_commands()
+        # self.tree.clear_commands(guild=discord.Object(id=os.environ.get("GUILD_ID")))
         self.tree.copy_global_to(guild=discord.Object(id=os.environ.get("GUILD_ID")))
         await self.tree.sync(guild=discord.Object(id=os.environ.get("GUILD_ID")))
 

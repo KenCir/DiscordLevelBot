@@ -18,17 +18,17 @@ def is_bot_admin():
     return app_commands.check(predicate)
 
 
-def calculation_level(exp: int) -> int:
+def calculation_level(exp: int) -> tuple[int, int]:
     level = 0
     while True:
-        exp = (5 * (level**2) + (50 * level) + 100) - exp
-        if exp <= 0:
+        _exp = (5 * (level**2) + (50 * level) + 100) - exp
+        if _exp <= 0:
             level += 1
-            exp = abs(exp)
+            exp = abs(_exp)
         else:
             break
 
-    return level
+    return level, exp
 
 
 def calculation_next_level_exp(level: int) -> int:
