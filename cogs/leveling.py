@@ -76,8 +76,7 @@ class Leveling(commands.Cog):
         self.bot = bot
         self._locks: [int, asyncio.Lock] = {}
 
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
+    async def on_message_v1(self, message: discord.Message):
         if message.author.bot or not message.guild:
             return
 
@@ -92,17 +91,21 @@ class Leveling(commands.Cog):
                 guild_setting = await self.bot.db.get_guild_setting(message.guild.id)
             min_exp, max_exp, stack_level_roles = guild_setting
 
-            exp = await self.bot.db.get_user_level(message.author.id, message.guild.id)
+            exp = await self.bot.db.get_user_level_v1(
+                message.author.id, message.guild.id
+            )
             if not exp:
-                await self.bot.db.create_user_level(message.author.id, message.guild.id)
-                exp = await self.bot.db.get_user_level(
+                await self.bot.db.create_user_level_v1(
+                    message.author.id, message.guild.id
+                )
+                exp = await self.bot.db.get_user_level_v1(
                     message.author.id, message.guild.id
                 )
             level, _ = calculation_level(exp)
             increase_exp = random.randint(min_exp, max_exp)
             increased_exp = exp + increase_exp
             increased_level, _ = calculation_level(increased_exp)
-            await self.bot.db.update_user_level(
+            await self.bot.db.update_user_level_v1(
                 message.author.id, message.guild.id, increased_exp
             )
 
@@ -127,19 +130,48 @@ class Leveling(commands.Cog):
                     for role in remove_level_roles:
                         await message.author.remove_roles(discord.Object(id=role[0]))
 
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if message.author.bot or not message.guild:
+            return
+
+        lock = self._locks.get(message.author.id)
+        if not lock:
+            self._locks[message.author.id] = lock = asyncio.Lock()
+
+        async with lock:
+            guild_setting = await self.bot.db.get_guild_setting(message.guild.id)
+            if not guild_setting:
+                await self.bot.db.create_guild_setting(message.guild.id)
+                guild_setting = await self.bot.db.get_guild_setting(message.guild.id)
+            min_exp, max_exp, stack_level_roles = guild_setting
+
+            exp = await self.bot.db.get_user_level(
+                message.author.id, message.guild.id, message.channel.id
+            )
+            if not exp:
+                await self.bot.db.create_user_level(
+                    message.author.id, message.guild.id, message.channel.id
+                )
+                exp = await self.bot.db.get_user_level_v1(
+                    message.author.id, message.guild.id
+                )
+
     @app_commands.command(name="rank", description="現在のレベルを表示します")
     @app_commands.describe(user="表示するメンバー")
     async def rank(self, interaction: discord.Interaction, user: discord.User = None):
         await interaction.response.defer()
 
         user = user or interaction.user
-        exp = await self.bot.db.get_user_level(user.id, interaction.guild.id)
+        exp = await self.bot.db.get_user_level_v1(user.id, interaction.guild.id)
         if not exp:
             await interaction.followup.send("No Data")
             return
 
         level, exp = calculation_level(exp)
-        ranking = await self.bot.db.get_user_level_rank(user.id, interaction.guild.id)
+        ranking = await self.bot.db.get_user_level_rank_v1(
+            user.id, interaction.guild.id
+        )
         await interaction.followup.send(
             content=f"現在`{ranking}`位\nLevel: `{level}`\nExp: `{exp}/{calculation_next_level_exp(level)}`",
         )
@@ -148,7 +180,7 @@ class Leveling(commands.Cog):
     async def top(self, interaction: discord.Interaction):
         await interaction.response.defer()
 
-        users = await self.bot.db.get_user_level_ranking(interaction.guild.id)
+        users = await self.bot.db.get_user_level_ranking_v1(interaction.guild.id)
         if len(users) == 0:
             await interaction.followup.send("No Data")
             return

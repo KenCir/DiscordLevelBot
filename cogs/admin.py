@@ -109,10 +109,10 @@ class AdminSettingCommand(
     ):
         await interaction.response.defer()
         if user:
-            await self.bot.db.delete_user_level(user.id, interaction.guild.id)
+            await self.bot.db.delete_user_level_v1(user.id, interaction.guild.id)
             await interaction.followup.send("経験値をリセットしました")
             return
-        await self.bot.db.delete_all_user_levels(interaction.guild.id)
+        await self.bot.db.delete_all_user_levels_v1(interaction.guild.id)
         await interaction.followup.send("全員の経験値をリセットしました")
 
     @app_commands.command(name="reset", description="サーバーの設定をリセットします")
