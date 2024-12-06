@@ -59,9 +59,6 @@ class AdminSettingCommand(
     ):
         await interaction.response.defer()
         guild_settings = await self.bot.db.get_guild_setting(interaction.guild.id)
-        if not guild_settings:
-            await self.bot.db.create_guild_setting(interaction.guild.id)
-            guild_settings = await self.bot.db.get_guild_setting(interaction.guild.id)
         min_exp, max_exp, _ = guild_settings
         await self.bot.db.update_guild_setting(
             interaction.guild.id, min_exp, max_exp, value
@@ -76,9 +73,6 @@ class AdminSettingCommand(
             await interaction.followup.send("0以上で指定してください")
             return
         guild_settings = await self.bot.db.get_guild_setting(interaction.guild.id)
-        if not guild_settings:
-            await self.bot.db.create_guild_setting(interaction.guild.id)
-            guild_settings = await self.bot.db.get_guild_setting(interaction.guild.id)
         _, max_exp, stack_level_roles = guild_settings
         await self.bot.db.update_guild_setting(
             interaction.guild.id, value, max_exp, stack_level_roles
@@ -93,9 +87,6 @@ class AdminSettingCommand(
             await interaction.followup.send("0以上で指定してください")
             return
         guild_settings = await self.bot.db.get_guild_setting(interaction.guild.id)
-        if not guild_settings:
-            await self.bot.db.create_guild_setting(interaction.guild.id)
-            guild_settings = await self.bot.db.get_guild_setting(interaction.guild.id)
         min_exp, _, stack_level_roles = guild_settings
         await self.bot.db.update_guild_setting(
             interaction.guild.id, min_exp, value, stack_level_roles
@@ -109,17 +100,67 @@ class AdminSettingCommand(
     ):
         await interaction.response.defer()
         if user:
-            await self.bot.db.delete_user_level_v1(user.id, interaction.guild.id)
-            await interaction.followup.send("経験値をリセットしました")
+            await self.bot.db.delete_user_level_total(user.id, interaction.guild.id)
+            await interaction.followup.send(
+                f"{user.display_name}の経験値をリセットしました"
+            )
             return
-        await self.bot.db.delete_all_user_levels_v1(interaction.guild.id)
+        await self.bot.db.delete_all_user_levels(interaction.guild.id)
         await interaction.followup.send("全員の経験値をリセットしました")
+
+    @exp_group.command(name="add", description="経験値を追加します")
+    @app_commands.describe(user="追加するメンバー")
+    @app_commands.describe(channel="追加するチャンネル")
+    @app_commands.describe(value="追加する値")
+    async def add_exp(
+        self,
+        interaction: discord.Interaction,
+        user: discord.User,
+        channel: discord.TextChannel,
+        value: int,
+    ):
+        await interaction.response.defer()
+        if value < 1:
+            await interaction.followup.send("1以上で指定してください")
+            return
+        await self.bot.db.update_user_level(
+            user.id, interaction.guild.id, channel.id, value
+        )
+        await interaction.followup.send(
+            f"{user.display_name}に{value}経験値追加しました"
+        )
+
+    @exp_group.command(name="remove", description="経験値を減らします")
+    @app_commands.describe(user="減らすメンバー")
+    @app_commands.describe(channel="減らすチャンネル")
+    @app_commands.describe(value="減らす値")
+    async def remove_exp(
+        self,
+        interaction: discord.Interaction,
+        user: discord.User,
+        channel: discord.TextChannel,
+        value: int,
+    ):
+        await interaction.response.defer()
+        if value < 1:
+            await interaction.followup.send("1以上で指定してください")
+            return
+        exp = await self.bot.db.get_user_level(
+            user.id, interaction.guild.id, channel.id
+        )
+        if exp < value:
+            value = exp
+        await self.bot.db.remove_user_level_exp(
+            user.id, interaction.guild.id, interaction.channel.id, value
+        )
+        await interaction.followup.send(
+            f"{user.display_name}から{value}経験値減らしました"
+        )
 
     @app_commands.command(name="reset", description="サーバーの設定をリセットします")
     async def reset(self, interaction: discord.Interaction):
         await interaction.response.defer()
         await self.bot.db.delete_guild_setting(interaction.guild.id)
-        await self.bot.db.create_guild_setting(interaction.guild.id)
         await interaction.followup.send("サーバーの設定をリセットしました")
 
     @app_commands.command(name="show", description="サーバーの設定を表示します")
@@ -131,7 +172,7 @@ class AdminSettingCommand(
             return
         min_exp, max_exp, stack_level_roles = guild_settings
         await interaction.followup.send(
-            f"最小経験値: {min_exp}\n最大経験値: {max_exp}\nレベルロールの複数保持: {stack_level_roles}"
+            f"最小経験値: {min_exp}\n最大経験値: {max_exp}\nレベルロールの複数保持: {'はい' if stack_level_roles else 'いいえ'}"
         )
 
 
