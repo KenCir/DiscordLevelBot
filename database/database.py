@@ -371,7 +371,7 @@ class Database:
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
-                    "UPDATE user_levels SET exp = user_levels.exp - %s WHERE user_id = %s AND guild_id = %s AND channel_id = %s",
+                    "UPDATE user_levels SET exp = GREATEST(user_levels.exp - %s, 0) WHERE user_id = %s AND guild_id = %s AND channel_id = %s",
                     (exp, user_id, guild_id, channel_id),
                 )
                 await conn.commit()
