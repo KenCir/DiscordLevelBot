@@ -17,7 +17,7 @@ class Database:
     async def fetchrow(self, query: str, *args: Any) -> Any:
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(query, args)
+                await cur.execute(query, *args)
                 row = await cur.fetchone()
                 await conn.commit()
 
@@ -26,7 +26,7 @@ class Database:
     async def fetch(self, query: str, *args: Any) -> Any:
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(query, args)
+                await cur.execute(query, *args)
                 rows = await cur.fetchall()
                 await conn.commit()
 
@@ -35,7 +35,7 @@ class Database:
     async def execute(self, query: str, *args: Any) -> Any:
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
-                result = await cur.execute(query, args)
+                result = await cur.execute(query, *args)
                 await conn.commit()
 
         return result
