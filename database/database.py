@@ -63,28 +63,31 @@ class Database:
         各テーブルを初期化します
         """
 
-        # ギルドの設定データ
-        await self.execute(
-            "CREATE TABLE IF NOT EXISTS guild_settings (guild_id BIGINT UNSIGNED PRIMARY KEY,"
-            "min_exp INT UNSIGNED NOT NULL, max_exp INT UNSIGNED NOT NULL,"
-            "stack_level_roles BOOLEAN NOT NULL,　created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
-            "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP)"
-        )
-        # ギルドのレベルロールデータ
-        await self.execute(
-            "CREATE TABLE IF NOT EXISTS guild_level_roles (guild_id BIGINT UNSIGNED,"
-            "role_id BIGINT UNSIGNED, level INT UNSIGNED NOT NULL,"
-            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
-            "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,"
-            "PRIMARY KEY (guild_id, role_id))"
-        )
-        # ユーザーのレベルデータ
-        await self.execute(
-            "CREATE TABLE IF NOT EXISTS user_levels (user_id BIGINT UNSIGNED, guild_id BIGINT UNSIGNED,"
-            "channel_id BIGINT UNSIGNED, exp INT UNSIGNED NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
-            "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,"
-            "PRIMARY KEY (user_id, guild_id, channel_id))"
-        )
+        async with self.pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                # ギルドの設定データ
+                await cur.execute(
+                    "CREATE TABLE IF NOT EXISTS guild_settings (guild_id BIGINT UNSIGNED PRIMARY KEY,"
+                    "min_exp INT UNSIGNED NOT NULL, max_exp INT UNSIGNED NOT NULL,"
+                    "stack_level_roles BOOLEAN NOT NULL,　created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                    "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP)"
+                )
+                # ギルドのレベルロールデータ
+                await cur.execute(
+                    "CREATE TABLE IF NOT EXISTS guild_level_roles (guild_id BIGINT UNSIGNED,"
+                    "role_id BIGINT UNSIGNED, level INT UNSIGNED NOT NULL,"
+                    "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                    "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,"
+                    "PRIMARY KEY (guild_id, role_id))"
+                )
+                # ユーザーのレベルデータ
+                await cur.execute(
+                    "CREATE TABLE IF NOT EXISTS user_levels (user_id BIGINT UNSIGNED, guild_id BIGINT UNSIGNED,"
+                    "channel_id BIGINT UNSIGNED, exp INT UNSIGNED NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                    "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,"
+                    "PRIMARY KEY (user_id, guild_id, channel_id))"
+                )
+                await conn.commit()
 
         print("Initialized database")
 
