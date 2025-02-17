@@ -123,7 +123,7 @@ class AdminSettingCommand(
         if value < 1:
             await interaction.followup.send("1以上で指定してください")
             return
-        await self.bot.db.update_user_level(
+        await self.bot.db.add_user_level(
             user.id, interaction.guild.id, channel.id, value
         )
         await interaction.followup.send(

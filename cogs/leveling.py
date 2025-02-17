@@ -256,7 +256,7 @@ class Leveling(commands.Cog):
             increase_exp = random.randint(min_exp, max_exp)
             increased_exp = exp + increase_exp
             increased_level, _ = calculation_level(increased_exp)
-            await self.bot.db.update_user_level(
+            await self.bot.db.add_user_level(
                 message.author.id, message.guild.id, message.channel.id, increase_exp
             )
 
