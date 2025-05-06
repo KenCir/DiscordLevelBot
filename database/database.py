@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from typing import Any
 
@@ -13,6 +14,7 @@ class Database:
     def __init__(self):
         self.initialized: bool = False
         self.pool: aiomysql.Pool | None = None
+        self.logger = logging.getLogger("database")
 
     async def fetchrow(self, query: str, *args: Any) -> Any:
         async with self.pool.acquire() as conn:
@@ -54,9 +56,10 @@ class Database:
             db=os.environ.get("MYSQL_DATABASE"),
             loop=loop,
             autocommit=False,
+            echo=True,
         )
 
-        print("Connected to database")
+        self.logger.info("Connected to database")
 
     async def init(self) -> None:
         """
@@ -89,7 +92,7 @@ class Database:
                 )
                 await conn.commit()
 
-        print("Initialized database")
+        self.logger.info("Initialized database")
 
         self.initialized = True
 
@@ -101,7 +104,7 @@ class Database:
         # 接続が閉じられるまで待機
         self.pool.close()
         await self.pool.wait_closed()
-        print("Disconnected from database")
+        self.logger.info("Disconnected from database")
 
     def is_initialized(self) -> bool:
         """

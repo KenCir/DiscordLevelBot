@@ -1,3 +1,4 @@
+import logging
 import os
 import traceback
 
@@ -18,6 +19,7 @@ class DiscordLevelBot(commands.Bot):
 
         self.initial_extensions = ["cogs.debug", "cogs.leveling", "cogs.admin"]
         self.db = Database()
+        self.logger = logging.getLogger("bot")
 
     async def setup_hook(self) -> None:
         for extension in self.initial_extensions:
@@ -32,7 +34,7 @@ class DiscordLevelBot(commands.Bot):
         self.tree.on_error = self.on_tree_error
 
     async def on_ready(self):
-        print(f"Logged in as {self.user}")
+        self.logger.info(f"Logged in as {self.user}")
 
     async def close(self) -> None:
         await self.db.close()
@@ -79,9 +81,15 @@ class DiscordLevelBot(commands.Bot):
         elif isinstance(error, app_commands.CheckFailure):
             msg = "このコマンドは実行できません"
         elif isinstance(error, app_commands.CommandInvokeError):
-            msg = "エラーが発生しました"
+            self.logger.error(
+                f"[ERROR] {interaction.command}\n{traceback.format_exc()}\nーーーーーーーーーーーー"
+            )
+            msg = f"エラーが発生しました\n```{traceback.format_exc()}```"
         else:
-            msg = "エラーが発生しました"
+            self.logger.error(
+                f"[ERROR] {interaction.command}\n{traceback.format_exc()}\nーーーーーーーーーーーー"
+            )
+            msg = f"エラーが発生しました\n```{traceback.format_exc()}```"
 
         if msg is not None:
             if interaction.response.is_done():
@@ -96,5 +104,6 @@ def main():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     load_dotenv()
     main()
