@@ -4,6 +4,32 @@ from discord.ext import commands
 from main import DiscordLevelBot
 
 
+class EXPResetConfirm(discord.ui.View):
+    def __init__(self, user: discord.User):
+        super().__init__()
+        self.value = None
+        self.user = user
+
+    async def interaction_check(self, interaction: discord.Interaction):
+        return interaction.user.id == self.user.id
+
+    @discord.ui.button(label="リセットする", style=discord.ButtonStyle.danger)
+    async def confirm(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        await interaction.response.edit_message(
+            content="リセットしています...", view=None
+        )
+        self.value = True
+        self.stop()
+
+    @discord.ui.button(label="キャンセル", style=discord.ButtonStyle.grey)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="キャンセルしました", view=None)
+        self.value = False
+        self.stop()
+
+
 @app_commands.default_permissions(administrator=True)
 class AdminSettingCommand(
     commands.GroupCog, name="settings", description="管理者用設定コマンド"
@@ -98,15 +124,22 @@ class AdminSettingCommand(
     async def reset_exp(
         self, interaction: discord.Interaction, user: discord.User = None
     ):
-        await interaction.response.defer()
-        if user:
-            await self.bot.db.delete_user_level_total(user.id, interaction.guild.id)
-            await interaction.followup.send(
-                f"{user.display_name}の経験値をリセットしました"
-            )
-            return
-        await self.bot.db.delete_all_user_levels(interaction.guild.id)
-        await interaction.followup.send("全員の経験値をリセットしました")
+        view = EXPResetConfirm(interaction.user)
+        await interaction.response.send_message(
+            f"{user.display_name if user else '全員'}の経験値をリセットしますか？",
+            view=view,
+        )
+        await view.wait()
+
+        if view.value:
+            if user:
+                await self.bot.db.delete_user_level_total(user.id, interaction.guild.id)
+                await interaction.followup.send(
+                    f"{user.display_name}の経験値をリセットしました"
+                )
+            else:
+                await self.bot.db.delete_all_user_levels(interaction.guild.id)
+                await interaction.followup.send("全員の経験値をリセットしました")
 
     @exp_group.command(name="add", description="経験値を追加します")
     @app_commands.describe(user="追加するメンバー")
