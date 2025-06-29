@@ -116,7 +116,7 @@ class AdminSettingCommand(
         self,
         interaction: discord.Interaction,
         user: discord.User,
-        channel: discord.TextChannel,
+        channel: discord.abc.GuildChannel,
         value: int,
     ):
         await interaction.response.defer()
@@ -138,7 +138,7 @@ class AdminSettingCommand(
         self,
         interaction: discord.Interaction,
         user: discord.User,
-        channel: discord.TextChannel,
+        channel: discord.abc.GuildChannel,
         value: int,
     ):
         await interaction.response.defer()
